@@ -17,6 +17,17 @@ Live: **[onebabycute.com](https://onebabycute.com)** · App: **[app.onebabycute.
 
 Products: personalized storybooks (digital and print), custom stickers, digital cards and invitations, and coloring books. A second sales channel (Etsy) is served by a small admin tool that produces the same files without the web checkout.
 
+## Screenshots
+
+| | |
+| --- | --- |
+| **Home** — the four product lines<br>![Home](screenshots/01-home.png) | **Pick a face** — six ready-made faces, with an optional photo upload<br>![Choose a face](screenshots/02-choose-face.png) |
+| **Finished example book** — opens like a real book (drag a corner or tap Next)<br>![Example book](screenshots/03-example-book.png) | **Free personalized preview** — the child's name inside the artwork<br>![Preview](screenshots/04-personalized-preview.png) |
+
+**Order options** — edition, dedication page and total, before handing off to Stripe's hosted payment page (not shown here):
+
+![Order options](screenshots/05-checkout-options.png)
+
 ## Architecture
 
 Two separate services, on purpose:
@@ -58,9 +69,14 @@ Two separate services, on purpose:
 - **Print-ready output.** Files are generated at a fixed print resolution and page size, with cover title lettering kept inside the printer's safe zone by code.
 - **Secrets stay out of git.** Configuration is through environment variables with a documented `.env.example`; test-mode Stripe keys are used in development.
 
-## Built with Claude Code
+## How I built it with Claude Code
 
-I used Claude Code as the main development tool: planning features, writing and refactoring both services, debugging deploy problems, and generating validation scripts (for example checks that every story and catalog entry is complete before it ships). Project conventions live in instruction files in the repos, and long-lived decisions are recorded so each session starts with the right context.
+Claude Code was my main development tool for both services: planning features, writing and refactoring code, debugging deploys, and writing validation scripts (for example checks that every story and catalog entry is complete before it ships). Four real problems that came up along the way:
+
+1. **Generation timed out behind the hosting proxy.** The first version generated the whole story inside one POST request; it took minutes and the proxy cut it with a 504. Fix: the endpoint returns an ID immediately, generation runs in the background, and the browser polls a status endpoint every few seconds to draw a progress bar.
+2. **Files vanished on every deploy.** Generated images were first written to disk, but on hosts with ephemeral disks they disappeared on each deploy or restart, which showed up as broken images. Fix: images live in memory for a limited time, and anything that must last (orders, customer emails) goes in a SQLite database on persistent storage.
+3. **Free previews could burn real money.** Every preview calls a paid AI API. Fix: rate limits per IP, per hour and per day, plus a global cap, because a per-IP limit alone doesn't stop traffic spread over many addresses.
+4. **Anyone could have claimed to be "paid".** Marking an order paid must not depend on the browser. Fix: the order is confirmed only by Stripe's webhook, verified with its signing secret; the expensive full-book composition starts only after that.
 
 ## Scale
 
