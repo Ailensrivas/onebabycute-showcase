@@ -78,6 +78,8 @@ Claude Code was my main development tool for both services: planning features, w
 3. **Free previews could burn real money.** Every preview calls a paid AI API. Fix: rate limits per IP, per hour and per day, plus a global cap, because a per-IP limit alone doesn't stop traffic spread over many addresses.
 4. **Anyone could have claimed to be "paid".** Marking an order paid must not depend on the browser. Fix: the order is confirmed only by Stripe's webhook, verified with its signing secret; the expensive full-book composition starts only after that.
 
+**In plain words:** at first, generating a story took minutes inside a single request and the hosting server cut it off with a 504 error, so the app now replies right away, keeps generating in the background, and the browser checks progress every few seconds. Images used to be saved on a disk that is wiped on every update, so they showed up broken; now they live briefly in memory, and anything that must last (orders, customer emails) goes in a database on permanent storage. Every free preview costs real money because it uses a paid AI service, so I added limits per person, per hour and per day, plus an overall cap, so even a busy campaign can't drain the balance without anyone buying. And so nobody can claim "I already paid" without paying, an order is marked as paid only when Stripe confirms it with a secret signature, never because the browser says so, and the full book is built only after that.
+
 ## Scale
 
 Roughly 11,000 lines of JavaScript in the API and 12,000 lines of TypeScript in the web app, plus build and print-pipeline scripts.
